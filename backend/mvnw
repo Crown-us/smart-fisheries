@@ -1,0 +1,34 @@
+#!/bin/sh
+# Lightweight Custom Maven Wrapper for Smart Fisheries Backend
+
+# Force compilation with stable Java 17 LTS to avoid JDK 26 compiler errors
+export JAVA_HOME="/usr/lib/jvm/java-17-openjdk"
+
+MAVEN_VERSION="3.9.6"
+MAVEN_DIR="$(cd "$(dirname "$0")" && pwd)/.maven"
+MAVEN_HOME="$MAVEN_DIR/apache-maven-$MAVEN_VERSION"
+
+if [ ! -d "$MAVEN_HOME" ]; then
+    echo "Maven tidak ditemukan secara lokal. Mengunduh Apache Maven $MAVEN_VERSION..."
+    mkdir -p "$MAVEN_DIR"
+    TARBALL="$MAVEN_DIR/maven.tar.gz"
+    
+    URL="https://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz"
+    
+    if command -v curl >/dev/null 2>&1; then
+        curl -L "$URL" -o "$TARBALL"
+    elif command -v wget >/dev/null 2>&1; then
+        wget "$URL" -O "$TARBALL"
+    else
+        echo "Error: curl atau wget dibutuhkan untuk mengunduh Maven."
+        exit 1
+    fi
+    
+    echo "Mengekstrak Maven..."
+    tar -xzf "$TARBALL" -C "$MAVEN_DIR"
+    rm "$TARBALL"
+    echo "Maven berhasil diunduh secara lokal!"
+fi
+
+# Jalankan maven dengan argumen yang diberikan
+exec "$MAVEN_HOME/bin/mvn" "$@"
