@@ -29,4 +29,13 @@ public final class FcrDto {
             Double currentFcr,
             LocalDate calculationDate
     ) {}
+
+    public record AiForecastResponse(
+            Double predictedFcr,
+            Double confidenceLevel,
+            Double recommendedFeedQuantityKg,
+            Double harvestReadyProbability,
+            String analysisStatus,
+            String recommendationNotes
+    ) {}
 }

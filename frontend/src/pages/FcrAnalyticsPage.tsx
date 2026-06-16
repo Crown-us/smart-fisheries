@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import { 
   LineChart as ChartIcon, Sparkles, Scale, RefreshCw, 
-  HelpCircle, ChevronRight, Activity, AlertTriangle
+  HelpCircle, ChevronRight, Activity, AlertTriangle, CheckCircle2
 } from 'lucide-react';
 
 export default function FcrAnalyticsPage() {
@@ -16,6 +16,10 @@ export default function FcrAnalyticsPage() {
   const [report, setReport] = useState<FcrReport | null>(null);
   const [history, setHistory] = useState<FcrRecord[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // AI Prediction state
+  const [aiForecast, setAiForecast] = useState<any | null>(null);
+  const [loadingAi, setLoadingAi] = useState(false);
 
   // Form states to update current weight
   const [showWeightForm, setShowWeightForm] = useState(false);
@@ -57,9 +61,22 @@ export default function FcrAnalyticsPage() {
       // Prepopulate form
       setNewWeight(dataReport.currentWeightKg * 1000);
       setNewQty(dataReport.currentQuantity);
+
+      // Load AI Forecast
+      setLoadingAi(true);
+      try {
+        const dataForecast = await fcrService.getAiForecast(stockId);
+        setAiForecast(dataForecast);
+      } catch (aiErr) {
+        console.error('Failed to load AI Forecast', aiErr);
+        setAiForecast(null);
+      } finally {
+        setLoadingAi(false);
+      }
     } catch (err) {
       setReport(null);
       setHistory([]);
+      setAiForecast(null);
     }
   };
 
@@ -175,6 +192,101 @@ export default function FcrAnalyticsPage() {
               </div>
             </div>
 
+          </div>
+
+          {/* AI Assistant Predictions & Recommendation Panel */}
+          <div className="glass-panel p-6 rounded-3xl border border-primary/20 shadow-xl relative overflow-hidden mb-8">
+            {/* Ambient light glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10" />
+            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-white/5 pb-4 mb-5 gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-primary/10 rounded-xl text-primary animate-pulse">
+                  <Sparkles className="h-5.5 w-5.5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-white text-base">Asisten AI e-Fish</h3>
+                  <p className="text-xs text-gray-400">Analisis kondisi ekologis air & perkiraan konversi pakan secara prediktif.</p>
+                </div>
+              </div>
+              
+              {loadingAi ? (
+                <span className="text-xs text-gray-500 animate-pulse">Menganalisis data...</span>
+              ) : aiForecast ? (
+                <span className={`text-[10px] font-black tracking-wider uppercase px-3 py-1 rounded-full border ${
+                  aiForecast.analysisStatus.includes("EXCELLENT") 
+                    ? 'bg-green-500/10 text-green-400 border-green-500/20' 
+                    : aiForecast.analysisStatus.includes("WARNING") 
+                      ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' 
+                      : 'bg-red-500/10 text-red-400 border-red-500/20 animate-pulse'
+                }`}>
+                  {aiForecast.analysisStatus}
+                </span>
+              ) : (
+                <span className="text-xs text-gray-500">Data telemetri belum cukup</span>
+              )}
+            </div>
+
+            {loadingAi ? (
+              <div className="text-center py-6 text-gray-500 text-sm">
+                Asisten AI sedang menghitung estimasi FCR & biomassa...
+              </div>
+            ) : !aiForecast ? (
+              <div className="text-center py-6 text-gray-500 text-sm">
+                Tambahkan log kualitas air & pakan terlebih dahulu untuk menghasilkan rekomendasi AI.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* 1. FCR Forecast */}
+                <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex flex-col justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-gray-400 block uppercase tracking-wider animate-pulse">Prediksi FCR (15 Hari)</span>
+                    <h4 className="text-3xl font-black text-white mt-2">{aiForecast.predictedFcr}</h4>
+                  </div>
+                  <div className="text-xs text-sky-400 font-semibold mt-4 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-sky-400 animate-bounce" />
+                    <span>Tingkat Kepercayaan: {Math.round(aiForecast.confidenceLevel * 100)}%</span>
+                  </div>
+                </div>
+
+                {/* 2. Feed recommendation */}
+                <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex flex-col justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-gray-400 block uppercase tracking-wider">Rekomendasi Pakan Harian</span>
+                    <h4 className="text-3xl font-black text-white mt-2">{aiForecast.recommendedFeedQuantityKg} kg</h4>
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-4 leading-relaxed">
+                    Dosis pakan disesuaikan otomatis dengan kondisi air saat ini agar nafsu makan ikan optimal.
+                  </p>
+                </div>
+
+                {/* 3. Harvest readiness */}
+                <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex flex-col justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-gray-400 block uppercase tracking-wider">Kesiapan Panen</span>
+                    <h4 className="text-3xl font-black text-white mt-2">{Math.round(aiForecast.harvestReadyProbability * 100)}%</h4>
+                  </div>
+                  <div className="w-full bg-white/10 h-1.5 rounded-full mt-4 overflow-hidden">
+                    <div 
+                      className="h-full bg-emerald-400 rounded-full transition-all duration-500" 
+                      style={{ width: `${aiForecast.harvestReadyProbability * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Recommendation notes */}
+                <div className="col-span-1 md:col-span-3 p-4 bg-slate-900/60 rounded-2xl border border-white/5 mt-2">
+                  <h5 className="text-xs font-extrabold text-white uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Activity className="h-4 w-4 text-primary" />
+                    Analisis Kondisi Kolam & Rencana Tindakan AI
+                  </h5>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {aiForecast.recommendationNotes}
+                  </p>
+                </div>
+
+              </div>
+            )}
           </div>
 
           {/* Split layout: graph vs sampling updates */}

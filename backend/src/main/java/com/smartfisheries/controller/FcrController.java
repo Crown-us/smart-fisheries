@@ -39,4 +39,13 @@ public class FcrController {
     ) {
         return ResponseEntity.ok(fcrService.getFcrHistory(userDetails.getUser().getId(), stockId));
     }
+
+    @GetMapping("/ai-forecast")
+    @Operation(summary = "Get AI FCR forecast and feeding recommendations based on pond ecosystems", description = "Calls the mock prediction service to estimate FCR, daily feed rates, and harvest probability.")
+    public ResponseEntity<FcrDto.AiForecastResponse> getAiForecast(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long stockId
+    ) {
+        return ResponseEntity.ok(fcrService.getAiForecast(userDetails.getUser().getId(), stockId));
+    }
 }
