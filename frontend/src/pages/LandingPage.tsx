@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { 
@@ -16,12 +16,81 @@ import {
   MapPin,
   Scale,
   Flame,
-  ArrowRight
+  ArrowRight,
+  CloudRain,
+  Wind,
+  Sparkles,
+  Zap,
+  HelpCircle,
+  Play,
+  Square
 } from 'lucide-react';
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuthStore();
+
+  // Interactive Sandbox state
+  const [ph, setPh] = useState(7.2);
+  const [temp, setTemp] = useState(28.4);
+  const [doVal, setDoVal] = useState(5.4);
+  const [aeratorActive, setAeratorActive] = useState(false);
+  const [feedGivenTotal, setFeedGivenTotal] = useState(150.0);
+  const [biomass, setBiomass] = useState(120.9);
+  const [sandboxLog, setSandboxLog] = useState<string>("Demo Sandbox aktif. Klik aksi di sebelah kiri!");
+
+  // ROI Calculator state
+  const [harvestTarget, setHarvestTarget] = useState(2000); 
+  const [currentFcr, setCurrentFcr] = useState(1.6);
+  const [feedPrice, setFeedPrice] = useState(12500); 
+
+  // Calculate FCR dynamically
+  const fcr = Math.round((feedGivenTotal / biomass) * 100) / 100;
+
+  // e-Fish target FCR is 1.2
+  const eFishFcr = 1.2;
+  const feedNeededOld = harvestTarget * currentFcr;
+  const feedNeededNew = harvestTarget * eFishFcr;
+  const feedSaved = Math.max(0, feedNeededOld - feedNeededNew);
+  const moneySaved = feedSaved * feedPrice;
+
+  // Handle DO level drift based on Aerator status
+  useEffect(() => {
+    let interval: any;
+    interval = setInterval(() => {
+      setDoVal(prev => {
+        if (aeratorActive) {
+          if (prev < 6.8) {
+            return Math.round((prev + 0.1) * 10) / 10;
+          }
+        } else {
+          if (prev > 4.2) {
+            return Math.round((prev - 0.1) * 10) / 10;
+          }
+        }
+        return prev;
+      });
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [aeratorActive]);
+
+  const handleFeed = () => {
+    setFeedGivenTotal(prev => prev + 15.0);
+    setBiomass(prev => Math.round((prev + 12.0) * 10) / 10);
+    setSandboxLog("Log: +15 kg pakan Cargill Prima 1 ditebar! Estimasi biomassa bertambah +12.0 kg.");
+  };
+
+  const handleSimulateRain = () => {
+    setPh(6.1);
+    setTemp(25.8);
+    setSandboxLog("Log: Simulasi hujan lebat! Air kolam mendingin (25.8°C) dan tingkat keasaman turun (pH 6.1).");
+  };
+
+  const handleAddLime = () => {
+    setPh(7.2);
+    setSandboxLog("Log: Tabur kapur pertanian berhasil! Derajat keasaman (pH) kembali stabil ke angka optimal 7.2.");
+  };
 
   const stats = [
     { value: '250+', label: 'Petani Terverifikasi', desc: 'Sertifikasi IndoGAP & CBIB' },
@@ -239,104 +308,417 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 4. Dashboard Preview Section */}
+      {/* 4. Dashboard Preview Section (Interactive Live Sandbox Demo) */}
       <section id="dashboard-preview" className="py-24 bg-slate-50 border-y border-slate-200/50">
         <div className="max-w-7xl mx-auto px-6">
-          
-          <div className="grid lg:grid-cols-12 gap-12 items-center">
+          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+            <span className="text-xs font-bold uppercase tracking-wider text-sky-600 bg-sky-50 px-3 py-1.5 rounded-full border border-sky-100">Live Interactive Demo Sandbox</span>
+            <h3 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">Coba Langsung Simulasi Tambak Digital Kami!</h3>
+            <p className="text-sm text-slate-500">
+              Gunakan panel kontrol di sebelah kiri untuk berinteraksi dengan kolam simulasi secara real-time. Perhatikan bagaimana parameter air, biomassa ikan, dan FCR berubah secara dinamis pada dasbor monitor di sebelah kanan.
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-12 gap-12 items-stretch">
             
-            <div className="lg:col-span-4 space-y-6">
-              <span className="text-xs font-bold uppercase tracking-wider text-sky-600">Monitoring Tambak Modern</span>
-              <h3 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">Dasbor Analisis Parameter Air & FCR</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">
-                Visualisasikan kesehatan ekosistem perikanan Anda secara digital. Hubungkan data pakan harian dan hasil sampling biomassa untuk melihat tren pertumbuhan harian secara otomatis.
-              </p>
+            {/* Control Panel (Left Column) */}
+            <div className="lg:col-span-5 flex flex-col justify-between bg-white border border-slate-200 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-32 h-32 bg-sky-500/5 rounded-full blur-2xl -z-10" />
               
-              <ul className="space-y-3 pt-2">
-                <li className="flex items-center gap-3 text-xs font-semibold text-slate-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-sky-500" /> Deteksi penurunan Oksigen Terlarut (DO)
-                </li>
-                <li className="flex items-center gap-3 text-xs font-semibold text-slate-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-sky-500" /> Histori FCR setiap siklus panen
-                </li>
-                <li className="flex items-center gap-3 text-xs font-semibold text-slate-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-sky-500" /> Log alarm water temperature
-                </li>
-              </ul>
+              <div className="space-y-6">
+                <div>
+                  <h4 className="font-extrabold text-slate-800 text-lg">Pusat Kontrol Kolam A-1</h4>
+                  <p className="text-xs text-slate-400 mt-1">Operasikan kolam simulasi secara langsung untuk melihat respons air & pertumbuhan ikan.</p>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Action 1: Feed Fish */}
+                  <button
+                    onClick={handleFeed}
+                    className="w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-sky-50 border border-slate-100 hover:border-sky-200 rounded-2xl text-left transition-all duration-200 group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-sky-100 text-sky-600 rounded-xl group-hover:bg-sky-200 group-hover:scale-105 transition-all">
+                        <Flame className="w-5 h-5 fill-sky-600 stroke-none" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-800 block">Beri Pakan (+15 kg)</span>
+                        <span className="text-[10px] text-slate-400">Tebarkan pakan Cargill Prima 1 ke kolam.</span>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-sky-600 transition-colors" />
+                  </button>
+
+                  {/* Action 2: Toggle Aerator */}
+                  <button
+                    onClick={() => setAeratorActive(!aeratorActive)}
+                    className={`w-full flex items-center justify-between p-3.5 border rounded-2xl text-left transition-all duration-200 group ${
+                      aeratorActive 
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+                        : 'bg-slate-50 border-slate-100 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2.5 rounded-xl transition-all group-hover:scale-105 ${
+                        aeratorActive ? 'bg-emerald-200 text-emerald-800' : 'bg-slate-200 text-slate-500'
+                      }`}>
+                        <Wind className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-800 block">
+                          Aerator Kincir Air {aeratorActive ? '(Aktif)' : '(Mati)'}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {aeratorActive ? 'Sedang meningkatkan kadar Oksigen (DO)...' : 'Nyalakan untuk meningkatkan Oksigen.'}
+                        </span>
+                      </div>
+                    </div>
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                      aeratorActive ? 'bg-emerald-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      {aeratorActive ? 'ON' : 'OFF'}
+                    </span>
+                  </button>
+
+                  {/* Action 3: Simulate Rain */}
+                  <button
+                    onClick={handleSimulateRain}
+                    className="w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-blue-50 border border-slate-100 hover:border-blue-200 rounded-2xl text-left transition-all duration-200 group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl group-hover:bg-blue-200 group-hover:scale-105 transition-all">
+                        <CloudRain className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-800 block">Simulasikan Hujan</span>
+                        <span className="text-[10px] text-slate-400">Air hujan menurunkan pH dan suhu air.</span>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                  </button>
+
+                  {/* Action 4: Add Lime */}
+                  <button
+                    onClick={handleAddLime}
+                    className="w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-amber-50 border border-slate-100 hover:border-amber-200 rounded-2xl text-left transition-all duration-200 group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-amber-100 text-amber-600 rounded-xl group-hover:bg-amber-200 group-hover:scale-105 transition-all">
+                        <Sparkles className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-800 block">Tabur Kapur Pertanian</span>
+                        <span className="text-[10px] text-slate-400">Menetralkan keasaman kolam kembali ideal.</span>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 transition-colors" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Log Console */}
+              <div className="mt-8 p-3 bg-slate-900 border border-slate-800 rounded-xl font-mono text-[11px] text-slate-200 min-h-[50px] flex items-center gap-2">
+                <span className="w-1.5 h-3 bg-sky-400 animate-pulse flex-shrink-0" />
+                <span className="leading-relaxed">{sandboxLog}</span>
+              </div>
             </div>
 
-            <div className="lg:col-span-8">
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-xl p-6 space-y-6">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            {/* Dashboard Display (Right Column) */}
+            <div className="lg:col-span-7 flex">
+              <div className="w-full bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-6 space-y-6 text-white flex flex-col justify-between">
+                
+                <div className="flex items-center justify-between border-b border-white/5 pb-4">
                   <div>
-                    <span className="text-xxs font-bold text-slate-400 uppercase">Interactive Mockup</span>
-                    <h4 className="text-sm font-bold text-slate-800">e-Fish Monitoring Board</h4>
+                    <span className="text-[10px] font-bold text-sky-400 uppercase tracking-widest block">Dashboard e-Fish Live</span>
+                    <h4 className="text-sm font-bold text-white mt-0.5">Monitoring Kolam Budidaya</h4>
                   </div>
-                  <span className="text-[10px] text-slate-400">Pond A-1: Nila Merah</span>
+                  <div className="flex items-center gap-2 text-[10px] text-slate-400 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-ping" />
+                    <span>Kolam A-1 (Nila Merah)</span>
+                  </div>
                 </div>
 
                 {/* 3 Parameter air */}
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl">
-                    <span className="text-[10px] text-slate-400 block mb-1">pH Air (Keasaman)</span>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-lg font-extrabold text-slate-800">7.2</span>
-                      <span className="text-[9px] text-green-600 font-bold">Optimal</span>
+                  
+                  {/* pH Card */}
+                  <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex flex-col justify-between">
+                    <div>
+                      <span className="text-[9px] text-slate-400 block uppercase font-bold tracking-wider mb-2">pH Air</span>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-2xl font-black text-white">{ph}</span>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                          ph >= 6.5 && ph <= 8.5 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400 animate-pulse'
+                        }`}>
+                          {ph >= 6.5 && ph <= 8.5 ? 'Optimal' : 'Asam!'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="w-full bg-slate-200 h-1 rounded-full mt-2">
-                      <div className="bg-sky-500 h-1 rounded-full w-[70%]" />
+                    <div className="w-full bg-white/10 h-1.5 rounded-full mt-4 overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${ph >= 6.5 && ph <= 8.5 ? 'bg-sky-400' : 'bg-red-400'}`} 
+                        style={{ width: `${(ph / 14) * 100}%` }} 
+                      />
                     </div>
                   </div>
 
-                  <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl">
-                    <span className="text-[10px] text-slate-400 block mb-1">Suhu Kolam</span>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-lg font-extrabold text-slate-800">28.4°C</span>
-                      <span className="text-[9px] text-green-600 font-bold">Normal</span>
+                  {/* Temperature Card */}
+                  <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex flex-col justify-between">
+                    <div>
+                      <span className="text-[9px] text-slate-400 block uppercase font-bold tracking-wider mb-2">Suhu Kolam</span>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-2xl font-black text-white">{temp}°C</span>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                          temp >= 26.0 && temp <= 30.0 ? 'bg-green-500/10 text-green-400' : 'bg-blue-500/10 text-blue-400 animate-pulse'
+                        }`}>
+                          {temp >= 26.0 && temp <= 30.0 ? 'Normal' : 'Dingin!'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="w-full bg-slate-200 h-1 rounded-full mt-2">
-                      <div className="bg-teal-500 h-1 rounded-full w-[80%]" />
+                    <div className="w-full bg-white/10 h-1.5 rounded-full mt-4 overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${temp >= 26.0 && temp <= 30.0 ? 'bg-orange-400' : 'bg-blue-400'}`} 
+                        style={{ width: `${(temp / 40) * 100}%` }} 
+                      />
                     </div>
                   </div>
 
-                  <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl">
-                    <span className="text-[10px] text-slate-400 block mb-1">Oksigen (DO)</span>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-lg font-extrabold text-slate-800">5.4 mg/L</span>
-                      <span className="text-[9px] text-green-600 font-bold">Baik</span>
+                  {/* DO Card */}
+                  <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex flex-col justify-between relative overflow-hidden">
+                    {aeratorActive && (
+                      <div className="absolute inset-0 bg-emerald-500/5 animate-pulse pointer-events-none" />
+                    )}
+                    <div>
+                      <span className="text-[9px] text-slate-400 block uppercase font-bold tracking-wider mb-2">Oksigen (DO)</span>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-2xl font-black text-white">{doVal}</span>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                          doVal >= 5.0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400 animate-pulse'
+                        }`}>
+                          {doVal >= 5.0 ? 'Baik' : 'Rendah!'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="w-full bg-slate-200 h-1 rounded-full mt-2">
-                      <div className="bg-emerald-500 h-1 rounded-full w-[75%]" />
+                    <div className="w-full bg-white/10 h-1.5 rounded-full mt-4 overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${doVal >= 5.0 ? 'bg-emerald-400' : 'bg-red-400 animate-pulse'}`} 
+                        style={{ width: `${(doVal / 8) * 100}%` }} 
+                      />
                     </div>
                   </div>
+
                 </div>
 
                 {/* FCR Analytics & Feeding */}
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 border border-slate-100 rounded-xl space-y-2">
+                  
+                  {/* FCR Card */}
+                  <div className="p-5 bg-white/5 border border-white/5 rounded-2xl space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] text-slate-400 block">FCR Analytics</span>
-                      <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Target: 1.25</span>
+                      <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Feed Conversion Ratio</span>
+                      <span className="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">Siklus Ke-1</span>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-black text-slate-800">1.24</span>
-                      <span className="text-xs text-green-600 font-semibold">↓ -5% hemat biaya pakan</span>
+                    <div className="flex items-baseline gap-2 pt-1">
+                      <span className="text-3xl font-black text-white">{fcr}</span>
+                      <span className={`text-xs font-semibold ${fcr <= 1.25 ? 'text-green-400' : 'text-yellow-400'}`}>
+                        {fcr <= 1.25 ? '↓ Pakan Efisien' : 'Normal'}
+                      </span>
                     </div>
-                    <span className="text-[9px] text-slate-400 block">Hasil konversi pakan sangat efisien</span>
+                    <p className="text-[9px] text-slate-400 leading-relaxed">
+                      FCR dihitung dari total pakan ({feedGivenTotal} kg) dibagi pertambahan biomassa ikan.
+                    </p>
                   </div>
 
-                  <div className="p-4 border border-slate-100 rounded-xl space-y-3">
-                    <span className="text-[10px] text-slate-400 block">Feeding Schedule</span>
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-center text-[10px]">
-                        <span className="text-slate-600 font-medium">Feeding Pagi (08:00)</span>
-                        <span className="font-bold text-slate-800">15 kg (Prima 1)</span>
+                  {/* Growth stats Card */}
+                  <div className="p-5 bg-white/5 border border-white/5 rounded-2xl space-y-4">
+                    <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Estimasi Biomassa & Pakan</span>
+                    
+                    <div className="space-y-2.5">
+                      <div>
+                        <div className="flex justify-between items-center text-xs mb-1">
+                          <span className="text-slate-400 font-medium flex items-center gap-1.5">
+                            <Scale className="w-3.5 h-3.5 text-sky-400" /> Total Biomassa Ikan
+                          </span>
+                          <span className="font-extrabold text-white">{biomass} kg</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center text-[10px]">
-                        <span className="text-slate-600 font-medium">Feeding Sore (16:00)</span>
-                        <span className="font-bold text-slate-400">15 kg (Prima 1)</span>
+                      
+                      <div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400 font-medium flex items-center gap-1.5">
+                            <Flame className="w-3.5 h-3.5 text-orange-400 fill-orange-400/20" /> Total Pakan Diberikan
+                          </span>
+                          <span className="font-extrabold text-white">{feedGivenTotal} kg</span>
+                        </div>
                       </div>
                     </div>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+      {/* 4.5. Feed Savings & ROI Calculator Section */}
+      <section id="roi-calculator" className="py-20 bg-white border-b border-slate-200/50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-12 gap-12 items-center">
+                     {/* Left Side: Copy/Explanation */}
+            <div className="lg:col-span-5 space-y-8 pr-2">
+              
+              <div className="space-y-4">
+                <span className="inline-flex items-center gap-1.5 text-xxs font-extrabold uppercase tracking-widest text-sky-600 bg-sky-50 border border-sky-100 px-3 py-1.5 rounded-full shadow-sm shadow-sky-50">
+                  <TrendingUp className="w-3.5 h-3.5" /> Kalkulator ROI Tambak
+                </span>
+                
+                <h3 className="text-3xl lg:text-4xl font-black tracking-tight leading-tight bg-gradient-to-br from-slate-950 via-slate-800 to-sky-850 bg-clip-text text-transparent">
+                  Hitung Potensi Uang yang Dapat Anda Hemat
+                </h3>
+                
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  Biaya pakan mencakup hingga <span className="font-extrabold text-slate-850">70% pengeluaran tambak</span>. Dengan menggunakan e-Fish, Anda dapat memantau FCR secara presisi menuju target ideal 1.2. Gunakan kalkulator ini untuk melihat berapa juta rupiah penghematan biaya pakan Anda per siklus panen!
+                </p>
+              </div>
+              
+              {/* Comparative Infographic Card */}
+              <div className="p-6 bg-gradient-to-br from-sky-50 to-indigo-50/30 border-l-4 border-sky-500 rounded-r-3xl rounded-l-lg shadow-md hover:shadow-lg transition-all duration-300 space-y-4 group">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-sky-100 text-sky-700 rounded-lg">
+                    <HelpCircle className="w-4 h-4" />
+                  </div>
+                  <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">Mengapa FCR Sangat Penting?</h5>
+                </div>
+                
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  FCR (Feed Conversion Ratio) mendefinisikan efisiensi pakan kolam Anda. Berikut perbandingannya secara visual:
+                </p>
+
+                <div className="grid grid-cols-2 gap-3 pt-1 text-xs">
+                  <div className="p-3 bg-white/70 border border-slate-100 rounded-xl space-y-1.5">
+                    <span className="text-[10px] text-slate-400 block font-bold uppercase">Tanpa e-Fish (FCR 1.6)</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-extrabold text-slate-800 text-sm">1.6 kg</span>
+                      <span className="text-[10px] text-slate-400">pakan</span>
+                    </div>
+                    <span className="inline-block text-[9px] px-1.5 py-0.5 bg-rose-50 text-rose-600 rounded font-bold">Kurang Efisien</span>
+                  </div>
+
+                  <div className="p-3 bg-white/70 border border-slate-100 rounded-xl space-y-1.5 border-l-2 border-l-emerald-500 shadow-sm">
+                    <span className="text-[10px] text-slate-400 block font-bold uppercase">Dengan e-Fish (FCR 1.2)</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-extrabold text-emerald-600 text-sm">1.2 kg</span>
+                      <span className="text-[10px] text-slate-400">pakan</span>
+                    </div>
+                    <span className="inline-block text-[9px] px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded font-bold">Optimal</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/60 flex items-start gap-2 text-xs text-slate-650 font-semibold leading-relaxed">
+                  <Sparkles className="w-4.5 h-4.5 text-amber-500 fill-amber-500/10 flex-shrink-0 mt-0.5 animate-pulse" />
+                  <span>
+                    Anda menghemat <span className="text-emerald-600 font-extrabold">25% pembelian pakan</span> untuk jumlah hasil panen ikan yang sama!
+                  </span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Right Side: Calculator Widget */}
+            <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -z-10" />
+              
+              <h4 className="font-extrabold text-white text-lg mb-6 flex items-center gap-2">
+                <Scale className="h-5 w-5 text-emerald-400" />
+                Simulasi Keuntungan e-Fish
+              </h4>
+
+              <div className="space-y-6">
+                {/* Slider 1: Harvest Target */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs font-semibold text-slate-300">
+                    <span>Target Hasil Panen (kg)</span>
+                    <span className="text-emerald-400 font-bold">{harvestTarget.toLocaleString('id-ID')} kg</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="500"
+                    max="10000"
+                    step="500"
+                    value={harvestTarget}
+                    onChange={(e) => setHarvestTarget(parseInt(e.target.value))}
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-500 font-medium">
+                    <span>500 kg</span>
+                    <span>5.000 kg</span>
+                    <span>10.000 kg</span>
+                  </div>
+                </div>
+
+                {/* Slider 2: Current FCR */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs font-semibold text-slate-300">
+                    <span>FCR Kolam Saat Ini (Tanpa e-Fish)</span>
+                    <span className="text-yellow-400 font-bold">{currentFcr}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1.4"
+                    max="2.2"
+                    step="0.1"
+                    value={currentFcr}
+                    onChange={(e) => setCurrentFcr(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-yellow-400"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-500 font-medium">
+                    <span>1.4 (Efisien)</span>
+                    <span>1.8 (Boros)</span>
+                    <span>2.2 (Sangat Boros)</span>
+                  </div>
+                </div>
+
+                {/* Slider 3: Feed Price */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs font-semibold text-slate-300">
+                    <span>Harga Pakan Ikan (per kg)</span>
+                    <span className="text-sky-400 font-bold">Rp {feedPrice.toLocaleString('id-ID')}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="9000"
+                    max="16000"
+                    step="500"
+                    value={feedPrice}
+                    onChange={(e) => setFeedPrice(parseInt(e.target.value))}
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-400"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-500 font-medium">
+                    <span>Rp 9.000</span>
+                    <span>Rp 12.500</span>
+                    <span>Rp 16.000</span>
+                  </div>
+                </div>
+
+                {/* Results Screen */}
+                <div className="pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-white/5 border border-white/5 rounded-2xl">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">Pakan yang Dihemat</span>
+                    <span className="text-xl font-black text-white mt-1 block">
+                      {feedSaved.toLocaleString('id-ID')} kg
+                    </span>
+                    <span className="text-[9px] text-slate-500 mt-1 block">Dari {feedNeededOld.toLocaleString('id-ID')} kg ke {feedNeededNew.toLocaleString('id-ID')} kg</span>
+                  </div>
+
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/10 rounded-full blur-xl" />
+                    <span className="text-[10px] text-emerald-400 uppercase tracking-wider block font-bold">Total Uang Dihemat</span>
+                    <span className="text-2xl font-black text-emerald-400 mt-1 block">
+                      Rp {moneySaved.toLocaleString('id-ID')}
+                    </span>
+                    <span className="text-[9px] text-emerald-500/60 mt-1 block font-medium">Per Siklus Budidaya</span>
                   </div>
                 </div>
 
