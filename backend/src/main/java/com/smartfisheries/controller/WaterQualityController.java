@@ -33,6 +33,17 @@ public class WaterQualityController {
         return ResponseEntity.ok(waterQualityService.recordWaterQuality(userDetails.getUser().getId(), pondId, request));
     }
 
+    @PostMapping("/ponds/{pondId}/water-quality/iot-simulate")
+    @Operation(summary = "Simulate an IoT device sending sensor data for a pond", description = "Generates mock pH, DO, Temperature, Salinity, and Ammonia parameters. Mode can be 'NORMAL' or 'ALERT'.")
+    public ResponseEntity<WaterQualityDto.WaterQualityResponse> simulateIot(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long pondId,
+            @RequestParam(defaultValue = "NORMAL") String mode
+    ) {
+        return ResponseEntity.ok(waterQualityService.simulateIotData(userDetails.getUser().getId(), pondId, mode));
+    }
+
+
     @GetMapping("/ponds/{pondId}/water-quality/latest")
     @Operation(summary = "Get latest recorded condition for a pond dashboard")
     public ResponseEntity<WaterQualityDto.WaterQualityResponse> getLatest(

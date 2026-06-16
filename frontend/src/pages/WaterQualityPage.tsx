@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import { 
   Waves, Plus, Activity, Thermometer, Wind, 
-  Compass, AlertCircle, Trash2, X 
+  Compass, AlertCircle, Trash2, X, Play, Square, Radio, Zap
 } from 'lucide-react';
 
 export default function WaterQualityPage() {
@@ -25,6 +25,11 @@ export default function WaterQualityPage() {
   const [salinity, setSalinity] = useState(1.0);
   const [ammonia, setAmmonia] = useState(0.01);
   const [notes, setNotes] = useState('');
+
+  // IoT Simulation state
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simMode, setSimMode] = useState<'NORMAL' | 'ALERT'>('NORMAL');
+  const [lastTickTime, setLastTickTime] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadPonds() {
@@ -61,6 +66,31 @@ export default function WaterQualityPage() {
       setLatestRecord(null);
     }
   };
+
+  const triggerSimTick = async () => {
+    if (!selectedPondId) return;
+    try {
+      await waterQualityService.simulateIot(selectedPondId, simMode);
+      setLastTickTime(new Date().toLocaleTimeString('id-ID'));
+      loadPondRecords(selectedPondId);
+    } catch (err) {
+      console.error('Failed to trigger simulation tick', err);
+    }
+  };
+
+  useEffect(() => {
+    let intervalId: any;
+    if (isSimulating && selectedPondId) {
+      triggerSimTick();
+
+      intervalId = setInterval(() => {
+        triggerSimTick();
+      }, 4000);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isSimulating, selectedPondId, simMode]);
 
   const handleLogMetrics = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,6 +166,99 @@ export default function WaterQualityPage() {
           </button>
         </div>
       </div>
+
+      {/* IoT Simulation Panel */}
+      {selectedPondId && (
+        <div className="glass-panel p-6 rounded-3xl relative overflow-hidden border border-slate-200/50 shadow-md">
+          {/* Decorative background grid/radiant */}
+          <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full blur-2xl -z-10" />
+          
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="space-y-1.5 max-w-xl">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-primary/10 rounded-lg text-primary">
+                  <Radio className="h-4 w-4 animate-pulse" />
+                </span>
+                <h3 className="font-extrabold text-white text-base">Simulasi Sensor IoT (ESP32)</h3>
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase ${
+                  isSimulating ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-slate-800 text-slate-400 border border-slate-700'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isSimulating ? 'bg-green-400 animate-ping' : 'bg-slate-500'}`} />
+                  {isSimulating ? 'Live Streaming' : 'Offline'}
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Menirukan perangkat ESP32 yang mengirimkan pH, DO, suhu, dll secara berkala ke MQTT Broker. Kamu bisa mensimulasikan kondisi normal atau memicu alarm bahaya untuk menguji sistem peringatan dini.
+              </p>
+              {lastTickTime && (
+                <p className="text-[10px] text-gray-500 font-medium">
+                  Pengiriman data terakhir: <span className="text-primary font-bold">{lastTickTime}</span>
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Mode Selector */}
+              <div className="flex bg-slate-900/60 p-1 rounded-xl border border-white/5">
+                <button
+                  onClick={() => setSimMode('NORMAL')}
+                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                    simMode === 'NORMAL' 
+                      ? 'bg-primary text-black font-bold shadow-sm' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Normal (Aman)
+                </button>
+                <button
+                  onClick={() => setSimMode('ALERT')}
+                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                    simMode === 'ALERT' 
+                      ? 'bg-yellow-500 text-black font-bold shadow-sm' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Bahaya (Alert)
+                </button>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={triggerSimTick}
+                  disabled={isSimulating}
+                  className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-semibold transition-all border border-white/10 flex items-center gap-1.5 disabled:opacity-50"
+                  title="Kirim 1 paket data sekarang"
+                >
+                  <Zap className="h-3.5 w-3.5 text-primary" />
+                  Kirim Sekali
+                </button>
+
+                <button
+                  onClick={() => setIsSimulating(!isSimulating)}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    isSimulating 
+                      ? 'bg-red-500/25 text-red-400 border border-red-500/30 hover:bg-red-500/30' 
+                      : 'bg-primary text-black hover:shadow-lg hover:shadow-primary/10'
+                  }`}
+                >
+                  {isSimulating ? (
+                    <>
+                      <Square className="h-3.5 w-3.5 fill-red-400 stroke-none" />
+                      Hentikan Stream
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-3.5 w-3.5 fill-black stroke-none" />
+                      Mulai Stream (4s)
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main content grid */}
       {!selectedPondId ? (

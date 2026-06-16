@@ -88,6 +88,7 @@ export const waterQualityService = {
   recordWater: (pondId: number, data: any) => api.post(`/api/farmer/ponds/${pondId}/water-quality`, data).then(r => r.data),
   getLatest: (pondId: number) => api.get(`/api/farmer/ponds/${pondId}/water-quality/latest`).then(r => r.data),
   getHistory: (pondId: number, days = 7) => api.get(`/api/farmer/ponds/${pondId}/water-quality/history?days=${days}`).then(r => r.data),
+  simulateIot: (pondId: number, mode = 'NORMAL') => api.post(`/api/farmer/ponds/${pondId}/water-quality/iot-simulate?mode=${mode}`).then(r => r.data),
 };
 
 export const feedingService = {
@@ -103,6 +104,7 @@ export const feedingService = {
 export const fcrService = {
   getReport: (stockId: number) => api.get(`/api/farmer/stock/${stockId}/fcr/report`).then(r => r.data),
   getHistory: (stockId: number) => api.get(`/api/farmer/stock/${stockId}/fcr/history`).then(r => r.data),
+  getAiForecast: (stockId: number) => api.get(`/api/farmer/stock/${stockId}/fcr/ai-forecast`).then(r => r.data),
 };
 
 export const certificationService = {

@@ -60,6 +60,90 @@ public class WaterQualityService {
         return mapper.toResponse(savedRecord);
     }
 
+    @Transactional
+    public WaterQualityDto.WaterQualityResponse simulateIotData(Long farmerId, Long pondId, String mode) {
+        Pond pond = pondRepository.findById(pondId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pond not found"));
+
+        if (!pond.getFarmer().getId().equals(farmerId)) {
+            throw new BadRequestException("You do not own this pond");
+        }
+
+        // Get the active stock for this pond to find the species
+        PondStock stock = pondStockRepository.findFirstByPondIdAndStatusOrderByStockedAtDesc(pond.getId(), PondStockStatus.ACTIVE)
+                .orElse(null);
+
+        // Default optimal limits if no stock
+        double phMin = 6.5, phMax = 8.5;
+        double tempMin = 25.0, tempMax = 30.0;
+        double doMin = 4.0;
+        double salinityMin = 0.0, salinityMax = 10.0;
+        double ammoniaMax = 0.05;
+
+        if (stock != null) {
+            FishSpecies species = stock.getFishSpecies();
+            if (species.getOptimalPhMin() != null) phMin = species.getOptimalPhMin();
+            if (species.getOptimalPhMax() != null) phMax = species.getOptimalPhMax();
+            if (species.getOptimalTempMin() != null) tempMin = species.getOptimalTempMin();
+            if (species.getOptimalTempMax() != null) tempMax = species.getOptimalTempMax();
+            if (species.getOptimalDoMin() != null) doMin = species.getOptimalDoMin();
+            if (species.getOptimalSalinityMin() != null) salinityMin = species.getOptimalSalinityMin();
+            if (species.getOptimalSalinityMax() != null) salinityMax = species.getOptimalSalinityMax();
+            if (species.getOptimalAmmoniaMax() != null) ammoniaMax = species.getOptimalAmmoniaMax();
+        }
+
+        double ph, temp, dissolvedOxygen, salinity, ammonia;
+        String notes;
+
+        if ("ALERT".equalsIgnoreCase(mode)) {
+            // Generate values that trigger warnings
+            ph = Math.random() < 0.5 ? (phMin - 0.8) : (phMax + 0.8);
+            temp = Math.random() < 0.5 ? (tempMin - 3.0) : (tempMax + 3.0);
+            dissolvedOxygen = doMin - 1.5; // dangerously low DO
+            salinity = salinityMax + 5.0; // too high
+            ammonia = ammoniaMax + 0.08; // toxic level
+            notes = "Simulasi IoT: Terdeteksi kondisi bahaya kualitas air!";
+        } else {
+            // Generate normal values within range
+            ph = phMin + (phMax - phMin) * (0.3 + 0.4 * Math.random());
+            temp = tempMin + (tempMax - tempMin) * (0.3 + 0.4 * Math.random());
+            dissolvedOxygen = doMin + 1.0 + 3.0 * Math.random();
+            salinity = salinityMin + (salinityMax - salinityMin) * (0.2 + 0.6 * Math.random());
+            ammonia = ammoniaMax * 0.3 * Math.random();
+            notes = "Simulasi IoT: Parameter air normal terkirim secara otomatis.";
+        }
+
+        // Round values
+        ph = Math.round(ph * 100.0) / 100.0;
+        temp = Math.round(temp * 10.0) / 10.0;
+        dissolvedOxygen = Math.round(dissolvedOxygen * 10.0) / 10.0;
+        salinity = Math.round(salinity * 10.0) / 10.0;
+        ammonia = Math.round(ammonia * 1000.0) / 1000.0;
+
+        User recordedBy = userRepository.findById(farmerId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        WaterQualityRecord record = WaterQualityRecord.builder()
+                .pond(pond)
+                .ph(ph)
+                .temperature(temp)
+                .dissolvedOxygen(dissolvedOxygen)
+                .salinity(salinity)
+                .ammonia(ammonia)
+                .notes(notes)
+                .recordedBy(recordedBy)
+                .recordedAt(LocalDateTime.now())
+                .build();
+
+        WaterQualityRecord savedRecord = recordRepository.save(record);
+
+        // Check and create in-app alerts/notifications
+        checkWaterQualityAlerts(pond, record);
+
+        return mapper.toResponse(savedRecord);
+    }
+
+
     private void checkWaterQualityAlerts(Pond pond, WaterQualityRecord record) {
         pondStockRepository.findFirstByPondIdAndStatusOrderByStockedAtDesc(pond.getId(), PondStockStatus.ACTIVE)
                 .ifPresent(stock -> {
